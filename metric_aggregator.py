@@ -1,4 +1,5 @@
 from collections import defaultdict
+import math
 
 
 class MetricStats(object):
@@ -6,9 +7,22 @@ class MetricStats(object):
         self.n = 0
         self.total_time = 0
         self.out_time = 0
+        self.max_time = 0
+        self.min_time = math.inf
 
 
 __aggregator = None
+
+
+def _update_metric_stats(stats, metric):
+    stats.n += 1
+    stats.total_time += metric.total_time
+
+    if stats.max_time < metric.total_time:
+        stats.max_time = metric.total_time
+
+    if stats.min_time > metric.total_time:
+        stats.min_time = metric.total_time
 
 
 class MetricAggregator(object):
@@ -22,8 +36,8 @@ class MetricAggregator(object):
 
     def on_metric_leave(self, metric):
         stats = self._metric_map[metric.name]
-        stats.n += 1
-        stats.total_time += metric.total_time
+
+        _update_metric_stats(stats, metric)
 
         thread_metric_stack = self._thread_metrics[metric.tid]
 
