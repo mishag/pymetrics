@@ -43,6 +43,17 @@ class MetricAggregator(object):
     def __init__(self):
         self._thread_metrics = defaultdict(list)
         self._metric_map = defaultdict(MetricStats)
+        self._observers = []
+
+    def register_observer(self, observer):
+        self._observers.append(observer)
+
+    def _notify_observers(self, metric, stats):
+        if not metric.observable:
+            return
+
+        for observer in self._observers:
+            observer.notify(metric, stats)
 
     def on_metric_enter(self, metric):
         thread_metric_stack = self._thread_metrics[metric.tid]
@@ -52,6 +63,8 @@ class MetricAggregator(object):
         stats = self._metric_map[metric.name]
 
         _update_metric_stats(stats, metric)
+
+        self._notify_observers(metric, stats)
 
         thread_metric_stack = self._thread_metrics[metric.tid]
 
