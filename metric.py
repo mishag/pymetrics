@@ -16,7 +16,7 @@ class Metric(object):
         self._start_time = time.time()
         self._aggregator.on_metric_enter(self)
 
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):
         self._end_time = time.time()
         self._aggregator.on_metric_leave(self)
 
@@ -26,8 +26,12 @@ class Metric(object):
 
     @property
     def total_time(self):
-        return self._end_time - self._start_time
+        return 1000 * (self._end_time - self._start_time)
 
     @property
     def name(self):
         return self._name
+
+    def __str__(self):
+        return "Metric: '{}' created: {}".format(self.name,
+                                                 self._start_time)
