@@ -10,6 +10,7 @@ class MetricStats(object):
         self.out_time = 0.0
         self.max_time = 0.0
         self.min_time = math.inf
+        self._callees = Counter()
 
     def __str__(self):
         return ("<n={n} total={total} outtime={outtime} "
@@ -26,6 +27,13 @@ class MetricStats(object):
     @property
     def in_time(self):
         return self.total_time - self.out_time
+
+    @property
+    def callees(self):
+        return self._callees
+
+    def update_callee(self, callee):
+        self._callees[callee] += 1
 
 
 def _update_metric_stats(stats, metric):
@@ -44,7 +52,6 @@ class MetricAggregator(object):
         self._thread_metrics = defaultdict(list)
         self._metric_map = defaultdict(MetricStats)
         self._observers = []
-        self._metric_graph = defaultdict(Counter)
 
     def register_observer(self, observer):
         self._observers.append(observer)
@@ -56,11 +63,11 @@ class MetricAggregator(object):
         for observer in self._observers:
             observer.notify(metric, stats)
 
-    def on_metric_enter(self, metric):
+    def _on_metric_enter(self, metric):
         thread_metric_stack = self._thread_metrics[metric.tid]
         thread_metric_stack.append(metric)
 
-    def on_metric_leave(self, metric):
+    def _on_metric_leave(self, metric):
         stats = self._metric_map[metric.name]
 
         _update_metric_stats(stats, metric)
@@ -77,8 +84,7 @@ class MetricAggregator(object):
             prev_metric_name = thread_metric_stack[-1].name
             prev_metric_stats = self._metric_map[prev_metric_name]
             prev_metric_stats.out_time += metric.total_time
-
-            self._metric_graph[prev_metric_name][metric.name] += 1
+            prev_metric_stats.update_callee(metric.name)
         else:
             del self._thread_metrics[metric.tid]
 
@@ -87,18 +93,20 @@ class MetricAggregator(object):
         width = (max(len(name) for name in self._metric_map)
                  if self._metric_map else 10)
 
-        print("{metric:{width}} {n:>10} {total:>10} "
-              "{out:>10} {inc:>10} {avg:>10} {max:>10} {min:>10}"
-              .format(metric="Metric",
-                      width=width,
-                      n="n",
-                      total="Total",
-                      out="Outtime",
-                      inc="Intime",
-                      avg="Ave",
-                      max="Max",
-                      min="Min"),
-              file=fd)
+        header = ("{metric:{width}} {n:>10} {total:>10} "
+                  "{out:>10} {inc:>10} {avg:>10} {max:>10} {min:>10}"
+                  .format(metric="Metric",
+                          width=width,
+                          n="n",
+                          total="Total",
+                          out="Outtime",
+                          inc="Intime",
+                          avg="Ave",
+                          max="Max",
+                          min="Min"))
+
+        print(header, file=fd)
+        print(len(header) * "=", file=fd)
 
         for name, stats in self._metric_map.items():
             print("{name:{width}} {n:10} {total:10.4} "
@@ -113,6 +121,9 @@ class MetricAggregator(object):
                           max=stats.max_time,
                           min=stats.min_time),
                   file=fd)
+
+    def get_metric_stats(self, metric_name):
+        return self._metric_map.get(metric_name, None)
 
 
 __aggregator = None

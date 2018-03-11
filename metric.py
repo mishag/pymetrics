@@ -18,11 +18,11 @@ class Metric(object):
 
     def __enter__(self):
         self._start_time = time.time()
-        _agg.on_metric_enter(self)
+        _agg._on_metric_enter(self)
 
     def __exit__(self, type, value, traceback):
         self._end_time = time.time()
-        _agg.on_metric_leave(self)
+        _agg._on_metric_leave(self)
 
     @property
     def tid(self):
