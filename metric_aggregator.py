@@ -125,6 +125,12 @@ class MetricAggregator(object):
     def get_metric_stats(self, metric_name):
         return self._metric_map.get(metric_name, None)
 
+    def call_graph(self):
+        return {
+            metric_name: stats.callees
+            for metric_name, stats in self._metric_map.items()
+        }
+
 
 __aggregator = None
 
