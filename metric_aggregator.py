@@ -32,7 +32,7 @@ class MetricStats(object):
     def callees(self):
         return self._callees
 
-    def update_callee(self, callee):
+    def _update_callee(self, callee):
         self._callees[callee] += 1
 
 
@@ -84,7 +84,7 @@ class MetricAggregator(object):
             prev_metric_name = thread_metric_stack[-1].name
             prev_metric_stats = self._metric_map[prev_metric_name]
             prev_metric_stats.out_time += metric.total_time
-            prev_metric_stats.update_callee(metric.name)
+            prev_metric_stats._update_callee(metric.name)
         else:
             del self._thread_metrics[metric.tid]
 
