@@ -1,5 +1,6 @@
 import time
 import threading
+from functools import wraps
 
 from metric_aggregator import get_metric_aggregator
 
@@ -42,3 +43,17 @@ class Metric(object):
     def __str__(self):
         return "<Metric: '{}' created: {}>".format(self.name,
                                                    self._start_time)
+
+
+def with_metric(name, observable=True):
+
+    def decorator(func):
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with Metric(name, observable):
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

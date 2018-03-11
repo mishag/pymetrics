@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 import math
 import sys
 
@@ -44,6 +44,7 @@ class MetricAggregator(object):
         self._thread_metrics = defaultdict(list)
         self._metric_map = defaultdict(MetricStats)
         self._observers = []
+        self._metric_graph = defaultdict(Counter)
 
     def register_observer(self, observer):
         self._observers.append(observer)
@@ -73,8 +74,11 @@ class MetricAggregator(object):
         thread_metric_stack.pop()
 
         if len(thread_metric_stack) > 0:
-            prev_metric_stats = self._metric_map[thread_metric_stack[-1].name]
+            prev_metric_name = thread_metric_stack[-1].name
+            prev_metric_stats = self._metric_map[prev_metric_name]
             prev_metric_stats.out_time += metric.total_time
+
+            self._metric_graph[prev_metric_name][metric.name] += 1
         else:
             del self._thread_metrics[metric.tid]
 
